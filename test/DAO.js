@@ -163,11 +163,92 @@ describe('DAO', () => {
        
       })
 
-       it('', async () => {
-       
+    })
+
+  })
+
+  describe('Governance', () => {
+    let transaction, result
+
+    describe('Success', () => {
+
+      beforeEach(async () => {
+        //create proposal
+        transaction = await dao.connect(investor1).createProposal('Test Proposal', ether(100), recipient.address)
+        result = await transaction.wait()
+
+        //Vote
+        transaction = await dao.connect(investor1).vote(1)
+        result = await transaction.wait()
+
+        transaction = await dao.connect(investor2).vote(1)
+        result = await transaction.wait()
+
+        transaction = await dao.connect(investor3).vote(1)
+        result = await transaction.wait()
+
+        //Finalie proposal
+        transaction = await dao.connect(investor1).finalizeProposal(1)
+        result = await transaction.wait()
+
       })
 
+      it('transfers funds to recipient', async () => {
+        expect(await ethers.provider.getBalance(recipient.address)).to.equal(tokens(10100))  
+      })
 
+      it('it updates the proposal to finalized', async () => {
+        const proposal = await dao.proposals(1)
+        expect(proposal.finalized).to.equal(true)
+      })
+
+      it('emits finalize event', async () => {
+       await expect(transaction).to.emit(dao, 'Finalize')
+          .withArgs(1) 
+      })
+
+    })
+
+    describe('Failure', () => {
+
+      beforeEach(async () => {
+        //create proposal
+        transaction = await dao.connect(investor1).createProposal('Test Proposal', ether(100), recipient.address)
+        result = await transaction.wait()
+
+        //Vote
+        transaction = await dao.connect(investor1).vote(1)
+        result = await transaction.wait()
+
+        transaction = await dao.connect(investor2).vote(1)
+        result = await transaction.wait()
+
+      })
+
+      it('rejects finalization if not enough votes', async () => {
+        await expect(dao.connect(investor1).finalizeProposal(1)).to.be.reverted
+      })
+
+      it('rejects finalization from non-investor', async () => {
+        transaction = await dao.connect(investor3).vote(1)
+        result = await transaction.wait()
+
+        await expect(dao.connect(user).finalizeProposal(1)).to.be.reverted
+      })
+
+      it('rejects proposal if already finalized', async () => {
+
+        transaction = await dao.connect(investor3).vote(1)
+        result = await transaction.wait()
+
+        //Finalie proposal
+        transaction = await dao.connect(investor1).finalizeProposal(1)
+        result = await transaction.wait()
+
+        //Try to finilize again
+        await expect(dao.connect(investor1).finalizeProposal(1)).to.be.reverted
+       
+      })
 
     })
 
