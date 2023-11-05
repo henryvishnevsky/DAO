@@ -121,7 +121,6 @@ contract DAO {
 
         //emit event
         emit Finalize(_id);
-
     }
 
 }

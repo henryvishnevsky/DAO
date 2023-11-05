@@ -96,7 +96,6 @@ async function main() {
 
   console.log(`Finished.\n`)
 
-
 }
 
 // We recommend this pattern to be able to use async/await everywhere
